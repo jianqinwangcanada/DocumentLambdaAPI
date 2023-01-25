@@ -229,8 +229,41 @@ public class ComponentLamdaHandler implements RequestStreamHandler {
 		reader.close();
 		writer.close();
 	}
+	@SuppressWarnings("unchecked")
+	public void handleAllRecord(InputStream input, OutputStream output, Context context) throws IOException {
+		OutputStreamWriter writer = new OutputStreamWriter(output);
+		JSONObject responseObject = new JSONObject(); // we will add to this object for our api response
 	
-	
+		
+		AmazonDynamoDB client = AmazonDynamoDBClientBuilder.defaultClient();
+		DynamoDB dynamoDB = new DynamoDB(client);
+		String str="";
+
+		try {
+			
+			 ScanSpec scanSpec = new ScanSpec()							
+            .withProjectionExpression("id, #nm,description")
+            .withNameMap(new NameMap().with("#nm", "name"));
+		            ItemCollection<ScanOutcome> items = dynamoDB.getTable(DYNAMO_TABLE).scan(scanSpec);
+		           // Component item1 = items.
+		           Iterator<Item> iterator = items.iterator();
+		           Item item = null;
+
+		            while(iterator.hasNext()) {
+		            	item=iterator.next();
+		            	str+=item.toJSONPretty();
+		            }
+		            //responseBody.put("message", str);
+					responseObject.put("statusCode", 200);
+					responseObject.put("body", str);
+				
+		} catch (Exception e) {
+			responseObject.put("statusCode", 400);
+			responseObject.put("error", e);
+		}
+		writer.write(responseObject.toString());
+		writer.close();
+	}
 
 }
 
